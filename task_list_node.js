@@ -6,6 +6,10 @@ const Parchment = Quill.import('parchment');
 const Module = Quill.import('core/module');
 const Delta = Quill.import('delta');
 
+//create and register a new class Attributor for checked tasks
+let checkedAttributor = new Parchment.Attributor.Class('checked', 'checked');
+Quill.register(checkedAttributor);
+
 class TaskListItem extends ListItem {
   format(name, value) {
     if (name === TaskList.blotName && !value) {
@@ -19,7 +23,7 @@ class TaskListItem extends ListItem {
   // when inserting a new list item, remove the 'checked' css class
   clone() {
     const clone = super.clone();
-    clone.domNode.classList.remove('checked');
+    checkedAttributor.remove(clone.domNode);
     return clone;
   }
 }
@@ -49,9 +53,11 @@ class TaskListModule extends Module {
 
     this.quill.container.addEventListener('click', (e) => {
       if (e.target.matches('ul.task-list > li')) {
-        e.target.classList.toggle('checked');
-        // dummy update so that quill detects a change
-        this.quill.updateContents(new Delta().retain(1));
+        if (checkedAttributor.value(e.target)) {
+          checkedAttributor.remove(e.target);
+        } else {
+          checkedAttributor.add(e.target, true);
+        }
       }
     });
   }
@@ -63,7 +69,6 @@ Quill.register({
   'modules/task-list': TaskListModule
 });
 
-// https://github.com/quilljs/quill/blob/develop/assets/icons/list-check.svg
 Quill.import('ui/icons')['task-list'] = `
   <svg class="" viewbox="0 0 18 18">
     <line class="ql-stroke" x1="9" x2="15" y1="4" y2="4"></line>
